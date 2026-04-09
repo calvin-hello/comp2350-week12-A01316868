@@ -12,7 +12,7 @@ global.include = function(file) {
 const express = require('express');
 const router = include('routes/router');
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3080;
 
 
 const app = express();
@@ -23,7 +23,7 @@ app.use(express.static(__dirname + "/public"));
 app.use('/',router);
 
 app.listen(port, () => {
-	console.log("Node application listening on port "+port);
+	console.log(`Node application listening on port http://localhost:${port}`);
 }); 
 
 
