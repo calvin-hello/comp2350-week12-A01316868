@@ -2,8 +2,13 @@ const database = include('databaseConnection');
 const User = include('models/user');
 const Pet = include('models/pet');
 const Joi = require("joi");
+const crypto = require('crypto');
+const { v4: uuid } = require('uuid');
+const passwordPepper = "mySuperSecretPepper123";
 
 const router = require('express').Router();
+
+
 
 router.get('/', async (req, res) => {
 	console.log("page hit");
@@ -76,6 +81,60 @@ router.get("/showPets", async (req, res) => {
 		res.render('error', {message: 'Error'});
 		console.log("Error");
 		console.log(ex);
+	}
+});
+
+
+
+//add user - not part of this lab instructions
+router.post('/addUser', async (req, res) => {
+	try {
+		console.log("form submit");
+
+		const schema = Joi.object({
+			first_name: Joi.string().alphanum().min(2).max(50).required(),
+			last_name: Joi.string().alphanum().min(2).max(50).required(),
+			email: Joi.string().email().max(150).required(),
+			password: Joi.string().min(8).max(30).required()
+		});
+
+		const { error } = schema.validate(req.body);
+
+		if (error) {
+			console.log(error.details[0].message);
+			return res.render('error', { message: 'Invalid user input' });
+		}
+
+		const existingUser = await User.findOne({ email: req.body.email });
+		if (existingUser) {
+			return res.render('error', { message: 'Email already exists' });
+		}
+
+		const saltHex = crypto
+			.createHash('sha512')
+			.update(uuid())
+			.digest('hex');
+
+		const hashHex = crypto
+			.createHash('sha512')
+			.update(req.body.password + passwordPepper + saltHex)
+			.digest('hex');
+
+		const user = new User({
+			first_name: req.body.first_name,
+			last_name: req.body.last_name,
+			email: req.body.email,
+			password_salt: saltHex,
+			password_hash: hashHex
+		});
+
+		await user.save();
+
+		res.redirect('/');
+	} catch (ex) {
+		console.log("Error adding user");
+		console.log(ex);
+		res.render('error', { message: 'Error adding user' });
 	}
 });
 module.exports = router;
